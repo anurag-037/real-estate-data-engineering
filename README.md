@@ -20,8 +20,8 @@ Raw (processed/unprocessed) -> Curated (latest_data) -> Analytics
 ------------------------------------------------------------
 
 Task 01. [✅] broker_master, property_master, property_transactions
-Task 02. [] dim_broker, dim_property
-Task 03. [] fact_property_sales
+Task 02. [✅] dim_broker, dim_property
+Task 03. [✅] fact_property_sales
 Task 04. [] AWS Setup
 Task 05. [] S3 setups 
 Task 06. [] Glue setup

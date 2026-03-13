@@ -39,7 +39,7 @@ def main():
             .withColumn("is_current", lit("Y"))
             .withColumn("broker_key_temp", monotonically_increasing_id())
             .withColumn("broker_key", col("broker_key_temp") + max_key + 1)
-            .drop("broker_key_temp", "created_at", "updated_at")
+            .drop("broker_key_temp", "created_at")
             )
 
         hudi_options = {

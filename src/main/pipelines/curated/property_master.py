@@ -9,7 +9,7 @@ def main():
     # =========================================================
     # 1. CONFIGURATION VARIABLES
     # =========================================================
-    input_path = config.raw_property
+    input_path = config.raw_property_incremental
     output_path = config.property_master
 
     # =========================================================
@@ -42,6 +42,8 @@ def main():
     # 4. WRITE
     # =========================================================
     logger.info(f"Writing curated data to {output_path}")
+
+    clean_df.show()
 
     clean_df.write \
         .mode("overwrite") \

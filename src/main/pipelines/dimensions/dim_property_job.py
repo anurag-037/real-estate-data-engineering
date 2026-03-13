@@ -39,12 +39,12 @@ def main():
             .withColumn("is_current", lit("Y"))
             .withColumn("property_key_temp", monotonically_increasing_id())
             .withColumn("property_key", col("property_key_temp") + max_key + 1)
-            .drop("property_key_temp")
+            .drop("property_key_temp", "updated_date")
             )
 
         hudi_options = {
-            "hoodie.table.name": "dim_broker",
-            "hoodie.datasource.write.recordkey.field": "broker_key",
+            "hoodie.table.name": "dim_property",
+            "hoodie.datasource.write.recordkey.field": "property_key",
             "hoodie.datasource.write.precombine.field": "start_date",
             "hoodie.datasource.write.operation": "insert",
             "hoodie.datasource.write.table.type": "COPY_ON_WRITE"
@@ -65,58 +65,75 @@ def main():
 
         joined_df = master_df.alias("new") \
             .join(current_dim_df.alias("old"),
-                  col("new.broker_id") == col("old.broker_id"),
+                  col("new.property_id") == col("old.property_id"),
                   "left")
 
         changed_df = joined_df.filter(
-            (col("old.broker_id").isNull()) |  # new broker
-            (col("new.company_name") != col("old.company_name")) |
-            (col("new.broker_name") != col("old.broker_name"))
+            (col("old.property_id").isNull()) |  # new property
+            (col("new.broker_id") != col("old.broker_id")) |
+            (col("new.property_type") != col("old.property_type")) |
+            (col("new.bedrooms") != col("old.bedrooms")) |
+            (col("new.city") != col("old.city")) |
+            (col("new.price") != col("old.price"))
             )\
             .select(
+                col("new.property_id").alias("property_id"),
                 col("new.broker_id").alias("broker_id"),
-                col("new.company_name").alias("company_name"),
-                col("new.broker_name").alias("broker_name"),
-                col("old.company_name").alias("old_company_name"),
-                col("old.broker_name").alias("old_broker_name"),
-                col("old.broker_id").alias("old_broker_id")
+                col("new.property_type").alias("property_type"),
+                col("new.bedrooms").alias("bedrooms"),
+                col("new.city").alias("city"),
+                col("new.price").alias("price"),
+                col("old.property_id").alias("old_property_id"),
+                col("old.broker_id").alias("old_broker_id"),
+                col("old.property_type").alias("old_property_type"),
+                col("old.bedrooms").alias("old_bedrooms"),
+                col("old.city").alias("old_city"),
+                col("old.price").alias("old_price"),
+                col("new.listing_date").alias("listing_date")
             )
 
         expired_df = current_dim_df \
-            .join(changed_df.select("broker_id").distinct(),
-                  "broker_id",
+            .join(changed_df.select("property_id").distinct(),
+                  "property_id",
                   "inner")\
             .withColumn("end_date", current_date()) \
             .withColumn("is_current", lit("N"))
 
         expired_df = expired_df.select(
+            "property_id",
             "broker_id",
-            "company_name",
-            "broker_name",
+            "property_type",
+            "bedrooms",
+            "city",
+            "price",
+            "listing_date",
             "start_date",
             "end_date",
             "is_current",
-            "broker_key"
+            "property_key"
         )
 
         new_versions_df = (
-            changed_df.select("broker_id", "company_name", "broker_name")
+            changed_df.select("property_id", "broker_id", "property_type","bedrooms", "city","price", "listing_date" )
             .withColumn("start_date", current_date())
             .withColumn("end_date", lit("9999-12-31"))
             .withColumn("is_current", lit("Y"))
-            .withColumn("broker_key_temp", monotonically_increasing_id())
-            .withColumn("broker_key", col("broker_key_temp") + max_key + 1)
-            .drop("broker_key_temp")
-            .drop("old_company_name")
-            .drop("old_broker_name")
+            .withColumn("property_key_temp", monotonically_increasing_id())
+            .withColumn("property_key", col("property_key_temp") + max_key + 1)
+            .drop("property_key_temp")
+            .drop("old_property_id")
             .drop("old_broker_id")
+            .drop("old_property_type")
+            .drop("old_bedrooms")
+            .drop("old_city")
+            .drop("old_price")
         )
 
         final_df = expired_df.unionByName(new_versions_df)
 
         hudi_options = {
-            "hoodie.table.name": "dim_broker",
-            "hoodie.datasource.write.recordkey.field": "broker_key",
+            "hoodie.table.name": "dim_property",
+            "hoodie.datasource.write.recordkey.field": "property_key",
             "hoodie.datasource.write.precombine.field": "start_date",
             "hoodie.datasource.write.operation": "upsert",
             "hoodie.datasource.write.table.type": "COPY_ON_WRITE"

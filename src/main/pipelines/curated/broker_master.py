@@ -9,6 +9,7 @@ def main():
     # =========================================================
     # 1. CONFIGURATION VARIABLES
     # =========================================================
+    #input_path = config.raw_broker
     input_path = config.raw_broker_incremental
     output_path = config.broker_master
 
@@ -27,7 +28,6 @@ def main():
         .withColumn("company_name", trim(col("company_name")))
         .dropDuplicates(["broker_id"])
         .withColumn("created_at", current_timestamp())
-        .withColumn("updated_at", current_timestamp())
     )
 
     # =========================================================
